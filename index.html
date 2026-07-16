@@ -65,11 +65,15 @@
   .stat .box{flex:1;background:#f7f9fd;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
   .stat .k{font-size:11.5px;color:var(--muted);font-weight:600}
   .stat .v{font-size:18px;font-weight:800;margin-top:2px}
+  .subsec{background:#f7f9fd;border:1px solid var(--line);border-radius:13px;padding:12px 14px;margin-top:12px}
+  .subsec:first-of-type{margin-top:4px}
+  .subhead{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
   .bal{display:flex;justify-content:space-between;padding:9px 4px;border-bottom:1px solid var(--line);font-size:14px}
   .bal:last-child{border-bottom:none}
   .pos{color:var(--cash);font-weight:700}.neg{color:var(--danger);font-weight:700}
-  .settle{display:flex;align-items:center;gap:8px;padding:11px;background:#f7f9fd;
+  .settle{display:flex;align-items:center;gap:8px;padding:11px;background:#fff;
     border:1px solid var(--line);border-radius:12px;margin-bottom:9px;font-size:14.5px}
+  .settle:last-child{margin-bottom:0}
   .settle .from{font-weight:700}.settle .to{font-weight:700}
   .settle .arrow{color:var(--brand);font-weight:800}
   .settle .m{margin-left:auto;font-weight:800}
@@ -150,9 +154,14 @@
   <!-- 結算 -->
   <div class="card">
     <h2>🧮 結算</h2>
-    <div id="balances"></div>
-    <div style="height:8px"></div>
-    <div id="settlements"></div>
+    <div class="subsec">
+      <div class="subhead">💰 每人收支結餘</div>
+      <div id="balances"></div>
+    </div>
+    <div class="subsec">
+      <div class="subhead">🔁 建議轉帳 <span style="font-weight:600;color:#9aa4b5">（最少轉帳次數）</span></div>
+      <div id="settlements"></div>
+    </div>
   </div>
 
   <!-- 工具 -->
@@ -342,7 +351,8 @@ function renderSettlement(){
   const balEl=document.getElementById("balances");
   const setEl=document.getElementById("settlements");
   if(state.expenses.length===0){
-    balEl.innerHTML=`<div class="empty">有帳目後這裡會自動算出誰欠誰</div>`; setEl.innerHTML=""; return;
+    balEl.innerHTML=`<div class="empty" style="padding:8px">有帳目後會顯示每人收支</div>`;
+    setEl.innerHTML=`<div class="empty" style="padding:8px">有帳目後會給出還款建議</div>`; return;
   }
   const bal=computeBalances();
   balEl.innerHTML = Object.keys(bal).map(m=>{
