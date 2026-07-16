@@ -1,0 +1,404 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>家族旅遊記帳</title>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --ink:#1f2733; --muted:#7a8699;
+    --line:#e6eaf2; --brand:#3b6fe0; --brand-ink:#fff;
+    --cash:#1f9d63; --cash-bg:#e6f7ee; --card-c:#c2571a; --card-bg:#fdeede;
+    --danger:#d8452f; --shadow:0 1px 3px rgba(18,32,64,.08),0 8px 24px rgba(18,32,64,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Segoe UI","Noto Sans TC",system-ui,sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.5;-webkit-text-size-adjust:100%}
+  header{position:sticky;top:0;z-index:20;background:linear-gradient(135deg,#3b6fe0,#5a52d8);
+    color:#fff;padding:16px 18px;box-shadow:var(--shadow)}
+  header h1{margin:0;font-size:19px;font-weight:700;letter-spacing:.5px}
+  header .sub{font-size:12.5px;opacity:.85;margin-top:2px}
+  .wrap{max-width:640px;margin:0 auto;padding:14px 14px 90px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
+  .card h2{margin:0 0 12px;font-size:15px;display:flex;align-items:center;gap:7px}
+  label{display:block;font-size:12.5px;color:var(--muted);margin:0 0 5px;font-weight:600}
+  input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);
+    border-radius:11px;font-size:15px;background:#fbfcfe;color:var(--ink);font-family:inherit}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);background:#fff}
+  textarea{resize:vertical;min-height:44px}
+  .row{display:flex;gap:10px}.row>*{flex:1}
+  .btn{border:none;border-radius:11px;padding:11px 14px;font-size:15px;font-weight:600;
+    cursor:pointer;font-family:inherit;transition:transform .05s}
+  .btn:active{transform:scale(.97)}
+  .btn.primary{background:var(--brand);color:var(--brand-ink);width:100%}
+  .btn.ghost{background:#eef1f8;color:var(--ink)}
+  .btn.sm{padding:6px 10px;font-size:13px}
+  .seg{display:flex;gap:8px}
+  .seg button{flex:1;padding:11px;border-radius:11px;border:1.5px solid var(--line);
+    background:#fbfcfe;font-size:14px;font-weight:600;cursor:pointer;color:var(--muted);font-family:inherit}
+  .seg button.on[data-m="cash"]{border-color:var(--cash);background:var(--cash-bg);color:var(--cash)}
+  .seg button.on[data-m="card"]{border-color:var(--card-c);background:var(--card-bg);color:var(--card-c)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{padding:8px 13px;border-radius:999px;border:1.5px solid var(--line);background:#fbfcfe;
+    font-size:14px;cursor:pointer;user-select:none;color:var(--muted);font-weight:600}
+  .chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  .members-tags{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}
+  .mtag{background:#eef1f8;border-radius:999px;padding:5px 8px 5px 12px;font-size:13.5px;
+    display:flex;align-items:center;gap:6px}
+  .mtag button{border:none;background:#d7deec;color:#5a6577;border-radius:999px;width:19px;height:19px;
+    cursor:pointer;font-size:13px;line-height:1;padding:0}
+  .exp{border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:10px;background:#fff}
+  .exp .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .exp .title{font-weight:700;font-size:15px}
+  .exp .amt{font-weight:800;font-size:17px;white-space:nowrap}
+  .exp .meta{font-size:12.5px;color:var(--muted);margin-top:4px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .tag{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px}
+  .tag.cash{background:var(--cash-bg);color:var(--cash)}
+  .tag.card{background:var(--card-bg);color:var(--card-c)}
+  .exp .note{font-size:13px;color:#4a5568;margin-top:6px;white-space:pre-wrap}
+  .exp .foot{display:flex;justify-content:space-between;align-items:center;margin-top:9px;
+    border-top:1px dashed var(--line);padding-top:8px}
+  .exp .split{font-size:12px;color:var(--muted)}
+  .linkbtn{background:none;border:none;color:var(--muted);font-size:12.5px;cursor:pointer;
+    padding:2px 4px;text-decoration:underline;font-family:inherit}
+  .linkbtn.del{color:var(--danger)}
+  .empty{text-align:center;color:var(--muted);font-size:13.5px;padding:22px 8px}
+  .stat{display:flex;gap:10px;margin-bottom:12px}
+  .stat .box{flex:1;background:#f7f9fd;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+  .stat .k{font-size:11.5px;color:var(--muted);font-weight:600}
+  .stat .v{font-size:18px;font-weight:800;margin-top:2px}
+  .bal{display:flex;justify-content:space-between;padding:9px 4px;border-bottom:1px solid var(--line);font-size:14px}
+  .bal:last-child{border-bottom:none}
+  .pos{color:var(--cash);font-weight:700}.neg{color:var(--danger);font-weight:700}
+  .settle{display:flex;align-items:center;gap:8px;padding:11px;background:#f7f9fd;
+    border:1px solid var(--line);border-radius:12px;margin-bottom:9px;font-size:14.5px}
+  .settle .from{font-weight:700}.settle .to{font-weight:700}
+  .settle .arrow{color:var(--brand);font-weight:800}
+  .settle .m{margin-left:auto;font-weight:800}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);
+    background:#1f2733;color:#fff;padding:11px 18px;border-radius:999px;font-size:14px;
+    opacity:0;pointer-events:none;transition:.25s;z-index:50;box-shadow:var(--shadow)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+
+<header>
+  <h1>🧳 家族旅遊記帳</h1>
+  <div class="sub">刷卡／現金 · 部分成員分帳 · 自動結算</div>
+</header>
+
+<div class="wrap">
+
+  <!-- 團員 -->
+  <div class="card">
+    <h2>👨‍👩‍👧‍👦 團員</h2>
+    <div class="members-tags" id="memberTags"></div>
+    <div class="row">
+      <input id="memberName" placeholder="輸入名字，例如：爸爸" maxlength="12"
+             onkeydown="if(event.key==='Enter')addMember()">
+      <button class="btn ghost" style="flex:0 0 auto" onclick="addMember()">＋ 新增</button>
+    </div>
+  </div>
+
+  <!-- 記一筆 -->
+  <div class="card">
+    <h2>➕ 記一筆支出</h2>
+    <div style="margin-bottom:12px">
+      <label>項目名稱</label>
+      <input id="expTitle" placeholder="例如：晚餐、住宿、租車" maxlength="30">
+    </div>
+    <div class="row" style="margin-bottom:12px">
+      <div>
+        <label>金額</label>
+        <input id="expAmount" type="number" inputmode="decimal" min="0" step="1" placeholder="0">
+      </div>
+      <div>
+        <label>誰付的錢</label>
+        <select id="expPayer"></select>
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label>付款方式</label>
+      <div class="seg" id="payMethod">
+        <button type="button" data-m="cash" class="on" onclick="setMethod('cash')">💵 現金</button>
+        <button type="button" data-m="card" onclick="setMethod('card')">💳 刷卡</button>
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label>備註（可留空）</label>
+      <textarea id="expNote" placeholder="例如：含小費、幫小孩多點一份"></textarea>
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="display:flex;justify-content:space-between">
+        <span>分帳給誰（平均分攤）</span>
+        <span><button class="linkbtn" onclick="toggleAllSplit()">全選／全不選</button></span>
+      </label>
+      <div class="chips" id="splitChips"></div>
+    </div>
+    <button class="btn primary" id="submitBtn" onclick="saveExpense()">✓ 新增這筆帳</button>
+  </div>
+
+  <!-- 帳目 -->
+  <div class="card">
+    <h2>📒 帳目明細 <span id="expCount" style="color:var(--muted);font-weight:600;font-size:13px"></span></h2>
+    <div class="stat">
+      <div class="box"><div class="k">總支出</div><div class="v" id="totalAll">0</div></div>
+      <div class="box"><div class="k">💵 現金</div><div class="v" id="totalCash">0</div></div>
+      <div class="box"><div class="k">💳 刷卡</div><div class="v" id="totalCard">0</div></div>
+    </div>
+    <div id="expList"></div>
+  </div>
+
+  <!-- 結算 -->
+  <div class="card">
+    <h2>🧮 結算</h2>
+    <div id="balances"></div>
+    <div style="height:8px"></div>
+    <div id="settlements"></div>
+  </div>
+
+  <!-- 工具 -->
+  <div class="card">
+    <h2>⚙️ 資料</h2>
+    <div class="row">
+      <button class="btn ghost sm" onclick="exportCSV()">⬇ 匯出 CSV</button>
+      <button class="btn ghost sm" onclick="clearAllExpenses()" style="color:var(--danger)">🗑 清空帳目</button>
+    </div>
+    <div class="hint">資料只存在這台裝置的瀏覽器裡，換裝置或清除瀏覽器資料會消失，重要資料請匯出 CSV 備份。</div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CUR = "$"; // 幣別符號，可自行改成 NT$ / ¥ 等
+let state = { members: [], expenses: [], method: "cash", split: {}, editing: null };
+
+/* ---------- 儲存 ---------- */
+function load(){
+  try{
+    const s = JSON.parse(localStorage.getItem("familyTrip")||"{}");
+    state.members = s.members||[];
+    state.expenses = s.expenses||[];
+  }catch(e){}
+  if(state.members.length===0) state.members = ["爸爸","媽媽"];
+}
+function save(){
+  localStorage.setItem("familyTrip", JSON.stringify({members:state.members, expenses:state.expenses}));
+}
+
+/* ---------- 工具 ---------- */
+function fmt(n){ return CUR + Math.round(n).toLocaleString(); }
+function money(n){ return CUR + (Math.round(n*100)/100).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:2}); }
+function uid(){ return "e"+Math.floor(performance.now()*1000)+Math.floor((performance.now()%1)*1e6); }
+function toast(msg){
+  const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1800);
+}
+
+/* ---------- 團員 ---------- */
+function addMember(){
+  const inp=document.getElementById("memberName"); const name=inp.value.trim();
+  if(!name){ return; }
+  if(state.members.includes(name)){ toast("已經有這個團員了"); return; }
+  state.members.push(name); inp.value=""; save(); renderMembers(); renderForm();
+}
+function removeMember(name){
+  const used = state.expenses.some(e=> e.payer===name || e.split.includes(name));
+  if(used && !confirm(`「${name}」已經在某些帳目裡，刪除後那些帳目仍保留該名字。確定刪除團員？`)) return;
+  state.members = state.members.filter(m=>m!==name);
+  delete state.split[name];
+  save(); renderMembers(); renderForm(); renderAll();
+}
+function renderMembers(){
+  const el=document.getElementById("memberTags");
+  el.innerHTML = state.members.length? state.members.map(m=>
+    `<span class="mtag">${esc(m)}<button onclick="removeMember('${escq(m)}')" title="刪除">×</button></span>`
+  ).join("") : `<span class="empty" style="padding:4px">還沒有團員，先新增吧</span>`;
+}
+
+/* ---------- 記帳表單 ---------- */
+function setMethod(m){
+  state.method=m;
+  document.querySelectorAll("#payMethod button").forEach(b=>b.classList.toggle("on",b.dataset.m===m));
+}
+function toggleSplit(name){
+  state.split[name]=!state.split[name]; renderSplitChips();
+}
+function toggleAllSplit(){
+  const allOn = state.members.every(m=>state.split[m]);
+  state.members.forEach(m=> state.split[m]=!allOn); renderSplitChips();
+}
+function renderForm(){
+  const sel=document.getElementById("expPayer");
+  const cur=sel.value;
+  sel.innerHTML = state.members.map(m=>`<option>${esc(m)}</option>`).join("");
+  if(state.members.includes(cur)) sel.value=cur;
+  // 預設全部參與分帳
+  state.members.forEach(m=>{ if(!(m in state.split)) state.split[m]=true; });
+  Object.keys(state.split).forEach(m=>{ if(!state.members.includes(m)) delete state.split[m]; });
+  renderSplitChips();
+}
+function renderSplitChips(){
+  const el=document.getElementById("splitChips");
+  el.innerHTML = state.members.map(m=>
+    `<span class="chip ${state.split[m]?'on':''}" onclick="toggleSplit('${escq(m)}')">${esc(m)}</span>`
+  ).join("") || `<span class="empty" style="padding:4px">先新增團員</span>`;
+}
+function saveExpense(){
+  const title=document.getElementById("expTitle").value.trim() || "未命名支出";
+  const amount=parseFloat(document.getElementById("expAmount").value);
+  const payer=document.getElementById("expPayer").value;
+  const note=document.getElementById("expNote").value.trim();
+  const split=state.members.filter(m=>state.split[m]);
+  if(!amount || amount<=0){ toast("請輸入正確金額"); return; }
+  if(!payer){ toast("請先新增團員並選擇付款人"); return; }
+  if(split.length===0){ toast("至少要勾選一位分帳對象"); return; }
+
+  if(state.editing){
+    const e=state.expenses.find(x=>x.id===state.editing);
+    Object.assign(e,{title,amount,payer,method:state.method,note,split});
+    state.editing=null; document.getElementById("submitBtn").textContent="✓ 新增這筆帳";
+    toast("已更新");
+  }else{
+    state.expenses.unshift({id:uid(),title,amount,payer,method:state.method,note,split,ts:Date.now()});
+    toast("已記一筆 "+fmt(amount));
+  }
+  save();
+  document.getElementById("expTitle").value="";
+  document.getElementById("expAmount").value="";
+  document.getElementById("expNote").value="";
+  renderAll();
+  window.scrollTo({top:document.querySelector(".wrap").offsetTop, behavior:"smooth"});
+}
+function editExpense(id){
+  const e=state.expenses.find(x=>x.id===id); if(!e) return;
+  document.getElementById("expTitle").value=e.title;
+  document.getElementById("expAmount").value=e.amount;
+  renderForm();
+  document.getElementById("expPayer").value=e.payer;
+  document.getElementById("expNote").value=e.note||"";
+  setMethod(e.method);
+  state.members.forEach(m=> state.split[m]=e.split.includes(m));
+  renderSplitChips();
+  state.editing=id; document.getElementById("submitBtn").textContent="✓ 儲存修改";
+  window.scrollTo({top:0,behavior:"smooth"}); toast("編輯中…修改後按儲存");
+}
+function deleteExpense(id){
+  if(!confirm("確定刪除這筆帳？")) return;
+  state.expenses=state.expenses.filter(x=>x.id!==id);
+  if(state.editing===id){state.editing=null;document.getElementById("submitBtn").textContent="✓ 新增這筆帳";}
+  save(); renderAll();
+}
+
+/* ---------- 明細 ---------- */
+function renderExpenses(){
+  const el=document.getElementById("expList");
+  document.getElementById("expCount").textContent = state.expenses.length? `共 ${state.expenses.length} 筆` : "";
+  if(state.expenses.length===0){ el.innerHTML=`<div class="empty">還沒有任何帳目，上面記一筆吧 🙂</div>`; return; }
+  el.innerHTML = state.expenses.map(e=>{
+    const per = e.amount/e.split.length;
+    const d = new Date(e.ts);
+    const date = `${d.getMonth()+1}/${d.getDate()}`;
+    return `<div class="exp">
+      <div class="top">
+        <div>
+          <div class="title">${esc(e.title)}</div>
+          <div class="meta">
+            <span class="tag ${e.method}">${e.method==='cash'?'💵 現金':'💳 刷卡'}</span>
+            <span>${esc(e.payer)} 付</span><span>·</span><span>${date}</span>
+          </div>
+        </div>
+        <div class="amt">${fmt(e.amount)}</div>
+      </div>
+      ${e.note?`<div class="note">📝 ${esc(e.note)}</div>`:""}
+      <div class="foot">
+        <div class="split">分 ${e.split.length} 人 · 每人 ${money(per)}<br><span style="color:#9aa4b5">${e.split.map(esc).join("、")}</span></div>
+        <div>
+          <button class="linkbtn" onclick="editExpense('${e.id}')">編輯</button>
+          <button class="linkbtn del" onclick="deleteExpense('${e.id}')">刪除</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+  const total=state.expenses.reduce((s,e)=>s+e.amount,0);
+  const cash=state.expenses.filter(e=>e.method==='cash').reduce((s,e)=>s+e.amount,0);
+  document.getElementById("totalAll").textContent=fmt(total);
+  document.getElementById("totalCash").textContent=fmt(cash);
+  document.getElementById("totalCard").textContent=fmt(total-cash);
+}
+
+/* ---------- 結算 ---------- */
+function computeBalances(){
+  const bal={}; state.members.forEach(m=>bal[m]=0);
+  state.expenses.forEach(e=>{
+    if(!(e.payer in bal)) bal[e.payer]=0;
+    bal[e.payer]+=e.amount;                 // 付錢 => 正
+    const per=e.amount/e.split.length;
+    e.split.forEach(m=>{ if(!(m in bal)) bal[m]=0; bal[m]-=per; }); // 該分攤 => 負
+  });
+  return bal;
+}
+function renderSettlement(){
+  const balEl=document.getElementById("balances");
+  const setEl=document.getElementById("settlements");
+  if(state.expenses.length===0){
+    balEl.innerHTML=`<div class="empty">有帳目後這裡會自動算出誰欠誰</div>`; setEl.innerHTML=""; return;
+  }
+  const bal=computeBalances();
+  balEl.innerHTML = Object.keys(bal).map(m=>{
+    const v=bal[m]; const cls=v>0.5?"pos":(v<-0.5?"neg":"");
+    const txt=v>0.5?`應收回 ${money(v)}`:(v<-0.5?`要付出 ${money(-v)}`:"打平");
+    return `<div class="bal"><span>${esc(m)}</span><span class="${cls}">${txt}</span></div>`;
+  }).join("");
+
+  // 貪婪最少轉帳
+  const debtors=[], creditors=[];
+  Object.keys(bal).forEach(m=>{
+    const v=Math.round(bal[m]*100)/100;
+    if(v<-0.5) debtors.push({m,v:-v}); else if(v>0.5) creditors.push({m,v});
+  });
+  debtors.sort((a,b)=>b.v-a.v); creditors.sort((a,b)=>b.v-a.v);
+  const tx=[]; let i=0,j=0;
+  while(i<debtors.length && j<creditors.length){
+    const pay=Math.min(debtors[i].v, creditors[j].v);
+    tx.push({from:debtors[i].m, to:creditors[j].m, amt:pay});
+    debtors[i].v-=pay; creditors[j].v-=pay;
+    if(debtors[i].v<0.5) i++; if(creditors[j].v<0.5) j++;
+  }
+  setEl.innerHTML = tx.length? tx.map(t=>
+    `<div class="settle"><span class="from">${esc(t.from)}</span>
+      <span class="arrow">→</span><span class="to">${esc(t.to)}</span>
+      <span class="m">${money(t.amt)}</span></div>`
+  ).join("") : `<div class="empty">大家剛好打平，不用轉帳 🎉</div>`;
+}
+
+/* ---------- 匯出 / 清空 ---------- */
+function exportCSV(){
+  if(state.expenses.length===0){ toast("沒有資料可匯出"); return; }
+  const rows=[["日期","項目","金額","付款方式","付款人","分帳人數","每人","分帳對象","備註"]];
+  state.expenses.slice().reverse().forEach(e=>{
+    const d=new Date(e.ts);
+    rows.push([`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`, e.title, e.amount,
+      e.method==='cash'?'現金':'刷卡', e.payer, e.split.length,
+      Math.round(e.amount/e.split.length*100)/100, e.split.join("、"), (e.note||"").replace(/\n/g," ")]);
+  });
+  const csv="﻿"+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\r\n");
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+  a.download="家族旅遊記帳.csv"; a.click();
+  toast("已匯出 CSV");
+}
+function clearAllExpenses(){
+  if(!confirm("確定清空所有帳目？團員會保留。此動作無法復原。")) return;
+  state.expenses=[]; state.editing=null;
+  document.getElementById("submitBtn").textContent="✓ 新增這筆帳";
+  save(); renderAll(); toast("已清空帳目");
+}
+
+/* ---------- 共用 ---------- */
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function escq(s){ return String(s).replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
+function renderAll(){ renderExpenses(); renderSettlement(); }
+
+load(); renderMembers(); renderForm(); renderAll();
+</script>
