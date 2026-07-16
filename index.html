@@ -166,12 +166,17 @@
 
   <!-- 工具 -->
   <div class="card">
-    <h2>⚙️ 資料</h2>
+    <h2>💾 資料備份</h2>
+    <div class="row" style="margin-bottom:8px">
+      <button class="btn primary sm" onclick="exportBackup()">💾 存檔備份</button>
+      <button class="btn ghost sm" onclick="document.getElementById('importFile').click()">📂 讀取備份</button>
+    </div>
+    <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importBackup(event)">
     <div class="row">
-      <button class="btn ghost sm" onclick="exportCSV()">⬇ 匯出 CSV</button>
+      <button class="btn ghost sm" onclick="exportCSV()">⬇ 匯出 CSV（給 Excel）</button>
       <button class="btn ghost sm" onclick="clearAllExpenses()" style="color:var(--danger)">🗑 清空帳目</button>
     </div>
-    <div class="hint">資料只存在這台裝置的瀏覽器裡，換裝置或清除瀏覽器資料會消失，重要資料請匯出 CSV 備份。</div>
+    <div class="hint">🔒 <b>怕資料不見，就按「存檔備份」</b>：會下載一個備份檔，建議存到雲端硬碟（Google Drive／iCloud）或傳給自己。日後在任何裝置按「讀取備份」即可完整還原。平常資料只存在本機瀏覽器，清除瀏覽器資料就會消失，請定期存檔。</div>
   </div>
 
 </div>
@@ -403,6 +408,40 @@ function clearAllExpenses(){
   state.expenses=[]; state.editing=null;
   document.getElementById("submitBtn").textContent="✓ 新增這筆帳";
   save(); renderAll(); toast("已清空帳目");
+}
+function pad2(n){ return String(n).padStart(2,"0"); }
+function exportBackup(){
+  const data={app:"family-trip-expense",version:1,savedAt:new Date().toISOString(),
+    members:state.members, expenses:state.expenses};
+  const d=new Date();
+  const stamp=`${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}_${pad2(d.getHours())}${pad2(d.getMinutes())}`;
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));
+  a.download=`家族旅遊記帳_備份_${stamp}.json`; a.click();
+  toast("已下載備份檔");
+}
+function importBackup(ev){
+  const file=ev.target.files[0]; if(!file){ return; }
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!data || !Array.isArray(data.members) || !Array.isArray(data.expenses))
+        throw new Error("缺少 members 或 expenses 欄位");
+      const ok=confirm(`確定讀取此備份？將【覆蓋】目前所有資料。\n\n備份內容：${data.members.length} 位團員、${data.expenses.length} 筆帳目${data.savedAt?`\n備份時間：${new Date(data.savedAt).toLocaleString()}`:""}`);
+      if(!ok){ ev.target.value=""; return; }
+      state.members=data.members.map(String);
+      state.expenses=data.expenses;
+      state.editing=null; state.split={};
+      document.getElementById("submitBtn").textContent="✓ 新增這筆帳";
+      save(); renderMembers(); renderForm(); renderAll();
+      toast(`已還原 ${data.expenses.length} 筆帳目`);
+    }catch(err){
+      alert("讀取失敗：這不是有效的備份檔。\n\n"+(err.message||err));
+    }
+    ev.target.value=""; // 重設，讓同一個檔可再次選取
+  };
+  reader.readAsText(file);
 }
 
 /* ---------- 共用 ---------- */
