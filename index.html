@@ -74,6 +74,11 @@
   .settle{display:flex;align-items:center;gap:8px;padding:11px;background:#fff;
     border:1px solid var(--line);border-radius:12px;margin-bottom:9px;font-size:14.5px}
   .settle:last-child{margin-bottom:0}
+  .rate-grid{display:flex;flex-wrap:wrap;gap:6px}
+  .rate-pill{background:#fff;border:1px solid var(--line);border-radius:9px;padding:5px 9px;font-size:12.5px}
+  .rate-pill b{font-weight:800}
+  .rate-when{font-size:11.5px;color:var(--muted);margin-top:7px}
+  .rate-when.off{color:var(--danger)}
   .settle .from{font-weight:700}.settle .to{font-weight:700}
   .settle .arrow{color:var(--brand);font-weight:800}
   .settle .m{margin-left:auto;font-weight:800}
@@ -110,14 +115,18 @@
       <input id="expTitle" placeholder="例如：晚餐、住宿、租車" maxlength="30">
     </div>
     <div class="row" style="margin-bottom:12px">
-      <div>
+      <div style="flex:1.5">
         <label>金額</label>
         <input id="expAmount" type="number" inputmode="decimal" min="0" step="1" placeholder="0">
       </div>
-      <div>
-        <label>誰付的錢</label>
-        <select id="expPayer"></select>
+      <div style="flex:1">
+        <label>幣別</label>
+        <select id="expCurrency"></select>
       </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label>誰付的錢</label>
+      <select id="expPayer"></select>
     </div>
     <div style="margin-bottom:12px">
       <label>付款方式</label>
@@ -144,7 +153,7 @@
   <div class="card">
     <h2>📒 帳目明細 <span id="expCount" style="color:var(--muted);font-weight:600;font-size:13px"></span></h2>
     <div class="stat">
-      <div class="box"><div class="k">總支出</div><div class="v" id="totalAll">0</div></div>
+      <div class="box"><div class="k">總支出<span style="font-weight:500">(約台幣)</span></div><div class="v" id="totalAll">0</div></div>
       <div class="box"><div class="k">💵 現金</div><div class="v" id="totalCash">0</div></div>
       <div class="box"><div class="k">💳 刷卡</div><div class="v" id="totalCard">0</div></div>
     </div>
@@ -153,13 +162,20 @@
 
   <!-- 結算 -->
   <div class="card">
-    <h2>🧮 結算</h2>
+    <h2>🧮 結算 <span style="font-weight:600;color:var(--muted);font-size:13px">（全部換算台幣）</span></h2>
     <div class="subsec">
-      <div class="subhead">💰 每人收支結餘</div>
+      <div class="subhead" style="justify-content:space-between">
+        <span>💱 即時匯率</span>
+        <button class="btn ghost sm" style="flex:0 0 auto;padding:4px 10px" onclick="refreshRates(true)">🔄 更新</button>
+      </div>
+      <div id="rateInfo"></div>
+    </div>
+    <div class="subsec">
+      <div class="subhead">💰 每人收支結餘 <span style="font-weight:600;color:#9aa4b5">（台幣）</span></div>
       <div id="balances"></div>
     </div>
     <div class="subsec">
-      <div class="subhead">🔁 建議轉帳 <span style="font-weight:600;color:#9aa4b5">（最少轉帳次數）</span></div>
+      <div class="subhead">🔁 建議轉帳 <span style="font-weight:600;color:#9aa4b5">（台幣・最少轉帳次數）</span></div>
       <div id="settlements"></div>
     </div>
   </div>
@@ -184,8 +200,19 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const CUR = "$"; // 幣別符號，可自行改成 NT$ / ¥ 等
-let state = { members: [], expenses: [], method: "cash", split: {}, editing: null };
+/* ---------- 幣別設定 ---------- */
+const CURRENCIES = {
+  TWD:{name:"台幣",   symbol:"NT$", flag:"🇹🇼", dec:0},
+  USD:{name:"美金",   symbol:"US$", flag:"🇺🇸", dec:2},
+  EUR:{name:"歐元",   symbol:"€",   flag:"🇪🇺", dec:2},
+  CNY:{name:"人民幣", symbol:"¥",   flag:"🇨🇳", dec:2},
+  VND:{name:"越南盾", symbol:"₫",   flag:"🇻🇳", dec:0},
+};
+// 內建預設匯率（每 1 單位外幣 = 幾元台幣），連不上網路時的後備值
+const FALLBACK_RATES = { TWD:1, USD:32, EUR:35, CNY:4.5, VND:0.00127 };
+
+let state = { members: [], expenses: [], method:"cash", split:{}, editing:null,
+  lastCurrency:"TWD", rates:{...FALLBACK_RATES}, ratesAt:null, ratesLive:false };
 
 /* ---------- 儲存 ---------- */
 function load(){
@@ -193,16 +220,46 @@ function load(){
     const s = JSON.parse(localStorage.getItem("familyTrip")||"{}");
     state.members = s.members||[];
     state.expenses = s.expenses||[];
+    if(s.lastCurrency) state.lastCurrency = s.lastCurrency;
+  }catch(e){}
+  try{
+    const r = JSON.parse(localStorage.getItem("familyTripRates")||"{}");
+    if(r.rates){ state.rates = r.rates; state.ratesAt = r.at||null; }
   }catch(e){}
   if(state.members.length===0) state.members = ["爸爸","媽媽"];
 }
 function save(){
-  localStorage.setItem("familyTrip", JSON.stringify({members:state.members, expenses:state.expenses}));
+  localStorage.setItem("familyTrip", JSON.stringify(
+    {members:state.members, expenses:state.expenses, lastCurrency:state.lastCurrency}));
+}
+
+/* ---------- 匯率 ---------- */
+function rateOf(cur){ return state.rates[cur] || FALLBACK_RATES[cur] || 1; }
+function toTWD(amount, cur){ return amount * rateOf(cur||"TWD"); }
+async function refreshRates(manual){
+  try{
+    const res = await fetch("https://open.er-api.com/v6/latest/TWD");
+    if(!res.ok) throw new Error("net");
+    const data = await res.json();
+    if(!data || !data.rates) throw new Error("bad");
+    const r = {TWD:1};
+    ["USD","EUR","CNY","VND"].forEach(c=>{ if(data.rates[c]) r[c] = 1/data.rates[c]; });
+    state.rates = r; state.ratesAt = Date.now(); state.ratesLive = true;
+    localStorage.setItem("familyTripRates", JSON.stringify({rates:r, at:state.ratesAt}));
+    if(manual) toast("匯率已更新");
+  }catch(e){
+    state.ratesLive = false;
+    if(manual) toast("連不上匯率，暫用現有匯率");
+  }
+  renderAll();
 }
 
 /* ---------- 工具 ---------- */
-function fmt(n){ return CUR + Math.round(n).toLocaleString(); }
-function money(n){ return CUR + (Math.round(n*100)/100).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:2}); }
+function curFmt(amount, cur){
+  const c = CURRENCIES[cur] || CURRENCIES.TWD;
+  return c.symbol + Number(amount).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:c.dec});
+}
+function twd(n){ return "NT$" + Math.round(n).toLocaleString(); }
 function uid(){ return "e"+Math.floor(performance.now()*1000)+Math.floor((performance.now()%1)*1e6); }
 function toast(msg){
   const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show");
@@ -247,6 +304,14 @@ function renderForm(){
   const cur=sel.value;
   sel.innerHTML = state.members.map(m=>`<option>${esc(m)}</option>`).join("");
   if(state.members.includes(cur)) sel.value=cur;
+  // 幣別下拉（只建一次）
+  const csel=document.getElementById("expCurrency");
+  if(csel && !csel.dataset.built){
+    csel.innerHTML = Object.keys(CURRENCIES).map(k=>
+      `<option value="${k}">${CURRENCIES[k].flag} ${CURRENCIES[k].name} ${k}</option>`).join("");
+    csel.dataset.built="1";
+    csel.value = state.lastCurrency||"TWD";
+  }
   // 預設全部參與分帳
   state.members.forEach(m=>{ if(!(m in state.split)) state.split[m]=true; });
   Object.keys(state.split).forEach(m=>{ if(!state.members.includes(m)) delete state.split[m]; });
@@ -261,6 +326,7 @@ function renderSplitChips(){
 function saveExpense(){
   const title=document.getElementById("expTitle").value.trim() || "未命名支出";
   const amount=parseFloat(document.getElementById("expAmount").value);
+  const currency=document.getElementById("expCurrency").value||"TWD";
   const payer=document.getElementById("expPayer").value;
   const note=document.getElementById("expNote").value.trim();
   const split=state.members.filter(m=>state.split[m]);
@@ -268,14 +334,15 @@ function saveExpense(){
   if(!payer){ toast("請先新增團員並選擇付款人"); return; }
   if(split.length===0){ toast("至少要勾選一位分帳對象"); return; }
 
+  state.lastCurrency=currency;
   if(state.editing){
     const e=state.expenses.find(x=>x.id===state.editing);
-    Object.assign(e,{title,amount,payer,method:state.method,note,split});
+    Object.assign(e,{title,amount,currency,payer,method:state.method,note,split});
     state.editing=null; document.getElementById("submitBtn").textContent="✓ 新增這筆帳";
     toast("已更新");
   }else{
-    state.expenses.unshift({id:uid(),title,amount,payer,method:state.method,note,split,ts:Date.now()});
-    toast("已記一筆 "+fmt(amount));
+    state.expenses.unshift({id:uid(),title,amount,currency,payer,method:state.method,note,split,ts:Date.now()});
+    toast("已記一筆 "+curFmt(amount,currency));
   }
   save();
   document.getElementById("expTitle").value="";
@@ -289,6 +356,7 @@ function editExpense(id){
   document.getElementById("expTitle").value=e.title;
   document.getElementById("expAmount").value=e.amount;
   renderForm();
+  document.getElementById("expCurrency").value=e.currency||"TWD";
   document.getElementById("expPayer").value=e.payer;
   document.getElementById("expNote").value=e.note||"";
   setMethod(e.method);
@@ -310,23 +378,27 @@ function renderExpenses(){
   document.getElementById("expCount").textContent = state.expenses.length? `共 ${state.expenses.length} 筆` : "";
   if(state.expenses.length===0){ el.innerHTML=`<div class="empty">還沒有任何帳目，上面記一筆吧 🙂</div>`; return; }
   el.innerHTML = state.expenses.map(e=>{
+    const cur = e.currency||"TWD";
     const per = e.amount/e.split.length;
     const d = new Date(e.ts);
     const date = `${d.getMonth()+1}/${d.getDate()}`;
+    const isTWD = cur==="TWD";
+    const twdEq = isTWD ? "" : `<div style="font-size:11.5px;color:var(--muted);font-weight:600;margin-top:1px">≈ ${twd(toTWD(e.amount,cur))}</div>`;
     return `<div class="exp">
       <div class="top">
         <div>
           <div class="title">${esc(e.title)}</div>
           <div class="meta">
             <span class="tag ${e.method}">${e.method==='cash'?'💵 現金':'💳 刷卡'}</span>
+            <span>${CURRENCIES[cur]?CURRENCIES[cur].flag:''} ${cur}</span><span>·</span>
             <span>${esc(e.payer)} 付</span><span>·</span><span>${date}</span>
           </div>
         </div>
-        <div class="amt">${fmt(e.amount)}</div>
+        <div style="text-align:right"><div class="amt">${curFmt(e.amount,cur)}</div>${twdEq}</div>
       </div>
       ${e.note?`<div class="note">📝 ${esc(e.note)}</div>`:""}
       <div class="foot">
-        <div class="split">分 ${e.split.length} 人 · 每人 ${money(per)}<br><span style="color:#9aa4b5">${e.split.map(esc).join("、")}</span></div>
+        <div class="split">分 ${e.split.length} 人 · 每人 ${curFmt(per,cur)}<br><span style="color:#9aa4b5">${e.split.map(esc).join("、")}</span></div>
         <div>
           <button class="linkbtn" onclick="editExpense('${e.id}')">編輯</button>
           <button class="linkbtn del" onclick="deleteExpense('${e.id}')">刪除</button>
@@ -334,25 +406,42 @@ function renderExpenses(){
       </div>
     </div>`;
   }).join("");
-  const total=state.expenses.reduce((s,e)=>s+e.amount,0);
-  const cash=state.expenses.filter(e=>e.method==='cash').reduce((s,e)=>s+e.amount,0);
-  document.getElementById("totalAll").textContent=fmt(total);
-  document.getElementById("totalCash").textContent=fmt(cash);
-  document.getElementById("totalCard").textContent=fmt(total-cash);
+  const total=state.expenses.reduce((s,e)=>s+toTWD(e.amount,e.currency||"TWD"),0);
+  const cash=state.expenses.filter(e=>e.method==='cash').reduce((s,e)=>s+toTWD(e.amount,e.currency||"TWD"),0);
+  document.getElementById("totalAll").textContent=twd(total);
+  document.getElementById("totalCash").textContent=twd(cash);
+  document.getElementById("totalCard").textContent=twd(total-cash);
 }
 
 /* ---------- 結算 ---------- */
 function computeBalances(){
+  // 全部換算成台幣後再計算
   const bal={}; state.members.forEach(m=>bal[m]=0);
   state.expenses.forEach(e=>{
+    const amt=toTWD(e.amount, e.currency||"TWD");
     if(!(e.payer in bal)) bal[e.payer]=0;
-    bal[e.payer]+=e.amount;                 // 付錢 => 正
-    const per=e.amount/e.split.length;
+    bal[e.payer]+=amt;                      // 付錢 => 正
+    const per=amt/e.split.length;
     e.split.forEach(m=>{ if(!(m in bal)) bal[m]=0; bal[m]-=per; }); // 該分攤 => 負
   });
   return bal;
 }
+function renderRateInfo(){
+  const el=document.getElementById("rateInfo"); if(!el) return;
+  const rateStr=c=>{ const r=rateOf(c); return "NT$"+(r>=1? r.toFixed(2) : r.toPrecision(2)); };
+  const pills = ["USD","EUR","CNY","VND"].map(c=>
+    `<span class="rate-pill">${CURRENCIES[c].flag} 1 ${c} <b>≈ ${rateStr(c)}</b></span>`).join("");
+  let when;
+  if(!state.ratesAt){
+    when=`<span class="off">尚未取得即時匯率，使用內建預設值。按「🔄 更新」抓取最新匯率。</span>`;
+  }else{
+    const t=new Date(state.ratesAt).toLocaleString();
+    when=`${state.ratesLive?"✅ 即時匯率":"⚠️ 目前離線，沿用上次匯率"}　更新於 ${t}`;
+  }
+  el.innerHTML=`<div class="rate-grid">${pills}</div><div class="rate-when ${state.ratesAt?'':'off'}">${when}</div>`;
+}
 function renderSettlement(){
+  renderRateInfo();
   const balEl=document.getElementById("balances");
   const setEl=document.getElementById("settlements");
   if(state.expenses.length===0){
@@ -362,7 +451,7 @@ function renderSettlement(){
   const bal=computeBalances();
   balEl.innerHTML = Object.keys(bal).map(m=>{
     const v=bal[m]; const cls=v>0.5?"pos":(v<-0.5?"neg":"");
-    const txt=v>0.5?`應收回 ${money(v)}`:(v<-0.5?`要付出 ${money(-v)}`:"打平");
+    const txt=v>0.5?`應收回 ${twd(v)}`:(v<-0.5?`要付出 ${twd(-v)}`:"打平");
     return `<div class="bal"><span>${esc(m)}</span><span class="${cls}">${txt}</span></div>`;
   }).join("");
 
@@ -383,17 +472,18 @@ function renderSettlement(){
   setEl.innerHTML = tx.length? tx.map(t=>
     `<div class="settle"><span class="from">${esc(t.from)}</span>
       <span class="arrow">→</span><span class="to">${esc(t.to)}</span>
-      <span class="m">${money(t.amt)}</span></div>`
+      <span class="m">${twd(t.amt)}</span></div>`
   ).join("") : `<div class="empty">大家剛好打平，不用轉帳 🎉</div>`;
 }
 
 /* ---------- 匯出 / 清空 ---------- */
 function exportCSV(){
   if(state.expenses.length===0){ toast("沒有資料可匯出"); return; }
-  const rows=[["日期","項目","金額","付款方式","付款人","分帳人數","每人","分帳對象","備註"]];
+  const rows=[["日期","項目","金額","幣別","約合台幣","付款方式","付款人","分帳人數","每人(原幣)","分帳對象","備註"]];
   state.expenses.slice().reverse().forEach(e=>{
-    const d=new Date(e.ts);
-    rows.push([`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`, e.title, e.amount,
+    const d=new Date(e.ts); const cur=e.currency||"TWD";
+    rows.push([`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`, e.title, e.amount, cur,
+      Math.round(toTWD(e.amount,cur)),
       e.method==='cash'?'現金':'刷卡', e.payer, e.split.length,
       Math.round(e.amount/e.split.length*100)/100, e.split.join("、"), (e.note||"").replace(/\n/g," ")]);
   });
@@ -450,4 +540,5 @@ function escq(s){ return String(s).replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
 function renderAll(){ renderExpenses(); renderSettlement(); }
 
 load(); renderMembers(); renderForm(); renderAll();
+refreshRates(false); // 開啟時抓即時匯率（失敗則用上次或內建值）
 </script>
