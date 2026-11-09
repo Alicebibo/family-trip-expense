@@ -6,28 +6,29 @@
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#eef0fb; --card:#ffffff; --ink:#272640; --muted:#8b8ba7;
-    --line:#ecebf5; --field:#f7f7fc;
-    --brand:#6366f1; --brand2:#8b5cf6; --brand-ink:#fff;
-    --brand-grad:linear-gradient(135deg,#6366f1,#8b5cf6);
-    --cash:#0ea371; --cash-bg:#e4f7ef; --card-c:#e07a1f; --card-bg:#fdefdc;
-    --danger:#e2483a; --danger-bg:#fdeae8;
-    --shadow:0 1px 2px rgba(39,38,64,.05),0 10px 30px rgba(39,38,64,.07);
-    --shadow-sm:0 1px 2px rgba(39,38,64,.06);
+    --bg:#f7ead9; --card:#fffaf3; --ink:#4f3325; --muted:#a98a76;
+    --line:#efdcc8; --field:#f8efe1;
+    --brand:#b5744a; --brand2:#dba463; --brand-ink:#fff;
+    --brand-grad:linear-gradient(135deg,#b5744a,#dba463);
+    --cash:#6f9e55; --cash-bg:#eef4e2; --card-c:#cc7d3c; --card-bg:#fbebd3;
+    --danger:#cf5f49; --danger-bg:#fbe7e1;
+    --shadow:0 1px 2px rgba(120,80,50,.06),0 10px 30px rgba(120,80,50,.12);
+    --shadow-sm:0 1px 2px rgba(120,80,50,.08);
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:"Nunito","Noto Sans TC",-apple-system,"Segoe UI",system-ui,sans-serif;
     background:var(--bg);color:var(--ink);line-height:1.55;-webkit-text-size-adjust:100%;
-    background-image:radial-gradient(1200px 500px at 50% -200px,rgba(139,92,246,.18),transparent 70%);}
+    background-image:radial-gradient(1100px 480px at 50% -200px,rgba(219,164,99,.3),transparent 70%);}
   header{position:sticky;top:0;z-index:20;background:var(--brand-grad);color:#fff;
-    padding:20px 18px 22px;overflow:hidden;box-shadow:0 6px 22px rgba(99,102,241,.3)}
+    padding:22px 18px 24px;overflow:hidden;box-shadow:0 6px 22px rgba(150,95,55,.35);
+    border-radius:0 0 26px 26px}
   header::before,header::after{content:"";position:absolute;border-radius:50%;
-    background:rgba(255,255,255,.13);pointer-events:none}
-  header::before{width:160px;height:160px;top:-70px;right:-30px}
-  header::after{width:110px;height:110px;bottom:-60px;left:-20px;background:rgba(255,255,255,.1)}
+    background:rgba(255,255,255,.14);pointer-events:none}
+  header::before{width:150px;height:150px;top:-66px;right:-26px}
+  header::after{width:100px;height:100px;bottom:-54px;left:-18px;background:rgba(255,255,255,.1)}
   .head-in{max-width:640px;margin:0 auto;position:relative;z-index:1}
-  header h1{margin:0;font-size:22px;font-weight:900;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
-  header .sub{font-size:13px;opacity:.9;margin-top:4px;font-weight:600}
+  header h1{margin:0;font-size:23px;font-weight:900;letter-spacing:.5px;display:flex;align-items:center;gap:9px}
+  header .sub{font-size:13px;opacity:.92;margin-top:5px;font-weight:700}
   .wrap{max-width:640px;margin:0 auto;padding:16px 14px 96px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:20px;
     padding:18px;margin-bottom:15px;box-shadow:var(--shadow)}
@@ -120,15 +121,15 @@
   .hint{font-size:12px;color:var(--muted);margin-top:10px;font-weight:600;line-height:1.6;
     background:var(--field);padding:11px 13px;border-radius:12px}
   .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
-    background:#272640;color:#fff;padding:12px 20px;border-radius:999px;font-size:14px;font-weight:700;
+    background:#4f3325;color:#fff;padding:12px 20px;border-radius:999px;font-size:14px;font-weight:700;
     opacity:0;pointer-events:none;transition:.25s;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.25)}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 
 <header>
   <div class="head-in">
-    <h1>🧳 家族旅遊記帳</h1>
-    <div class="sub">刷卡／現金 · 多幣別即時匯率 · 自動分帳結算</div>
+    <h1>🧸 家族旅遊記帳</h1>
+    <div class="sub">🐾 刷卡／現金 · 多幣別即時匯率 · 自動分帳結算</div>
   </div>
 </header>
 
@@ -136,7 +137,7 @@
 
   <!-- 團員 -->
   <div class="card">
-    <h2>👨‍👩‍👧‍👦 團員</h2>
+    <h2>🧸 團員</h2>
     <div class="members-tags" id="memberTags"></div>
     <div class="row">
       <input id="memberName" placeholder="輸入名字，例如：爸爸" maxlength="12"
@@ -147,7 +148,7 @@
 
   <!-- 記一筆 -->
   <div class="card">
-    <h2>➕ 記一筆支出</h2>
+    <h2>🍯 記一筆支出</h2>
     <div style="margin-bottom:12px">
       <label>項目名稱</label>
       <input id="expTitle" placeholder="例如：晚餐、住宿、租車" maxlength="30">
@@ -573,7 +574,7 @@ function importBackup(ev){
 }
 
 /* ---------- 共用 ---------- */
-const AVA_COLORS=["#6366f1","#8b5cf6","#0ea371","#e07a1f","#ec4899","#0ea5e9","#f59e0b","#14b8a6","#f43f5e","#6d28d9"];
+const AVA_COLORS=["#b5744a","#cc7d3c","#a0632e","#d79a5b","#8a5a3b","#c58a5a","#9c7b4f","#6f9e55","#c67b6b","#7a5230"];
 function avaColor(name){ let h=0; for(const c of String(name)) h=(h*31+c.codePointAt(0))>>>0; return AVA_COLORS[h%AVA_COLORS.length]; }
 function ava(name,sm){ const ch=[...String(name)][0]||"?";
   return `<span class="ava${sm?' sm':''}" style="background:${avaColor(name)}">${esc(ch)}</span>`; }
